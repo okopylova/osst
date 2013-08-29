@@ -3,31 +3,38 @@ from webob import exc
 from osst import vm_manager
 
 
-# POST method used for other actions
-_req_methods = {'list_all': 'GET',
-                'create': 'PUT',
-                'delete': 'DELETE'}
-
-
-class ApiHandler(object):
+class APIHandler(object):
 
     def __call__(self, environ, start_response):
         req = Request(environ)
-        meth_name = req.path[req.path.rindex('/') + 1:]
+        action = req.path.strip('/').replace('/', '_') + '_' + req.method
         try:
-            approved_method = _req_methods.get(meth_name, 'POST')
-            if req.method != approved_method:
-                raise exc.HTTPBadRequest('Incorrect method for %s, use %s' %
-                                         (req.path, approved_method))
-            if hasattr(vm_manager, meth_name):
-                if(meth_name == 'list_all'):
-                    resp = Response(', '.join(vm_manager.list_all()))
-                else:
-                    resp = Response(getattr(vm_manager, meth_name)(**req.json))
+            if hasattr(self, action):
+                resp = getattr(self, action)(req)
             else:
-                raise exc.HTTPBadRequest('No such action %s' % req.path)
-        except exc.HTTPException, e:
+                resp = exc.HTTPBadRequest('Incorrect path or method')
+        except exc.HTTPException as e:
             resp = e
-        except Exception, e:
-            resp = exc.HTTPBadRequest(e.get_error_message())
+        except ValueError:
+            resp = exc.HTTPBadRequest('Incorrect data for request')
+        except Exception as e:
+            resp = exc.HTTPServerError(e.message)
         return resp(environ, start_response)
+
+    def api_v1_list_all_GET(self, req):
+        return Response(', '.join(vm_manager.list_all()))
+
+    def api_v1_create_PUT(self, req):
+        return Response(vm_manager.create(**req.json))
+
+    def api_v1_delete_DELETE(self, req):
+        return Response(vm_manager.delete(**req.json))
+
+    def api_v1_reboot_POST(self, req):
+        return Response(vm_manager.reboot(**req.json))
+
+    def api_v1_power_on_POST(self, req):
+        return Response(vm_manager.power_on(**req.json))
+
+    def api_v1_power_off_POST(self, req):
+        return Response(vm_manager.power_off(**req.json))

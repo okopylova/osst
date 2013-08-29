@@ -1,7 +1,7 @@
 """Script starts api server"""
 from argparse import ArgumentParser
 from wsgiref.simple_server import make_server
-from api_handler import ApiHandler
+from api_handler import APIHandler
 
 
 if __name__ == '__main__':
@@ -9,8 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('-host', default='localhost')
     parser.add_argument('-port', type=int, default=8080)
     args = parser.parse_args()
-    handler = ApiHandler()
-    httpd = make_server(args.host, args.port, handler)
+    httpd = make_server(args.host, args.port, APIHandler())
     print 'Started on http://%s:%s' % (args.host, args.port)
     try:
         httpd.serve_forever()

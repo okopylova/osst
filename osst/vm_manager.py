@@ -24,9 +24,7 @@ def create(vmname):
     Keyword arguments:
     vmname -- name of the created VM
 
-    Raise libvirt.libvirtError if VM with this name already exists
-
-    Returns libvirt.virDomain instance"""
+    Raise libvirt.libvirtError if VM with this name already exists"""
 
     imgpath = os.path.join(base_disk_path, vmname + '.img')
     shutil.copyfile(base_vm_img, imgpath)
