@@ -22,7 +22,3 @@ class Instance(Base):
     def __repr__(self):
         return "<Instance(name='%s', power_status='%d')>" % (self.name,
                                                              self.power_status)
-
-
-from sqlalchemy import create_engine
-Base.metadata.create_all(create_engine('postgresql://postgres:zaq123@localhost:5432/vm_manager'))
