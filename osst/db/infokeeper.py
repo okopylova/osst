@@ -1,12 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from osst.db.model import Instance, Base
+from osst.db.model import Instance, IPaddress
 from osst.config.db import dbconfig
 
-engine = create_engine('{engine}://{user}:{passw}@{host}:{port}/{dbname}'
-                       .format(**dbconfig))
+url = '{engine}://{user}:{passw}@{host}:{port}/{dbname}'.format(**dbconfig)
+engine = create_engine(url)
 session = sessionmaker(bind=engine)()
-Base.metadata.create_all(bind=engine)
 
 
 def _get_instance(vmname):
@@ -35,4 +34,9 @@ def delete_vm(vmname):
 
 def update_status_vm(vmname, status):
     _get_instance(vmname).update({'power_status': status})
+    session.commit()
+
+
+def add_ip_addr(addr, assigned_vm_id=None):
+    session.add(IPaddress(addr, assigned_vm_id))
     session.commit()
