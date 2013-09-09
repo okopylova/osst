@@ -10,7 +10,7 @@ class APIHandler(object):
         action = req.path.strip('/').replace('/', '_') + '_' + req.method
         try:
             if hasattr(self, action):
-                resp = getattr(self, action)(req)
+                resp = Response(getattr(self, action)(req))
             else:
                 resp = Response(exc.HTTPBadRequest('Incorrect path or method'))
         except exc.HTTPException as e:

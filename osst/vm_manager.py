@@ -4,6 +4,7 @@ see config.pathconf.py for path configuration"""
 import os
 import shutil
 import libvirt
+import xml.etree.ElementTree as ET
 from osst.config.pathconf import driver, base_disk_path
 from osst.config.pathconf import base_vm_img, vm_conf_templ_path
 import osst.db.infokeeper as infokeeper
@@ -35,8 +36,10 @@ def create(vmname):
     imgpath = os.path.join(base_disk_path, vmname + '.img')
     shutil.copyfile(base_vm_img, imgpath)
     config = _vm_conf_template.format(**locals())
-    _conn.defineXML(config)
-    infokeeper.add_vm(vmname)
+    vm = _conn.defineXML(config)
+    xml = ET.fromstring(vm.XMLDesc(0))
+    mac = xml.find('devices').find('interface').find('mac').attrib['address']
+    infokeeper.add_vm(vmname, mac)
     return 'VM %s created' % vmname
 
 

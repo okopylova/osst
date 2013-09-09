@@ -12,10 +12,10 @@ def _get_instance(vmname):
     return session.query(Instance).filter_by(name=vmname)
 
 
-def add_vm(vmname):
+def add_vm(vmname, mac):
     """Insert information about VM state into table "instances"
     """
-    session.add(Instance(vmname))
+    session.add(Instance(vmname, mac))
     session.commit()
 
 

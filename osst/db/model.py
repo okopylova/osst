@@ -14,11 +14,13 @@ class Instance(Base):
     name = Column(String, nullable=False)
     power_status = Column(Integer,
                           default=STATUS_POWER_OFF)
+    mac = Column(String(17))  # length of mac address string representation
 
     __table_args__ = (UniqueConstraint('name', name='_unique_vm_name'),)
 
-    def __init__(self, name, power_status=None):
+    def __init__(self, name, mac, power_status=None):
         self.name = name
+        self.mac = mac
         self.power_status = power_status
 
     def __repr__(self):
@@ -39,8 +41,8 @@ class IPaddress(Base):
     def validate_addr(addr):
         '''Validate IPv4 address'''
         octets = addr.split('.')
-        return (len(octets) == 4 and
-                all(map(lambda o: o.isdigit() and 0 <= int(o) < 256, octets)))
+        return len(octets) == 4 and \
+            all(map(lambda o: o.isdigit() and 0 <= int(o) < 256, octets))
 
     def __init__(self, addr, vm_id=None):
         if IPaddress.validate_addr(addr):
