@@ -8,7 +8,7 @@ engine = create_engine(url)
 session = sessionmaker(bind=engine)()
 
 
-def _get_instance(vmname):
+def get_instance(vmname):
     return session.query(Instance).filter_by(name=vmname)
 
 
@@ -20,7 +20,7 @@ def add_vm(vmname, mac):
 
 
 def status_vm(vmname):
-    return _get_instance(vmname).first()
+    return get_instance(vmname).first()
 
 
 def status_all_vm():
@@ -28,15 +28,53 @@ def status_all_vm():
 
 
 def delete_vm(vmname):
-    session.delete(_get_instance(vmname).first())
+    vm = get_instance(vmname).first()
+    session.delete(vm)
     session.commit()
 
 
 def update_status_vm(vmname, status):
-    _get_instance(vmname).update({'power_status': status})
+    get_instance(vmname).update({'power_status': status})
     session.commit()
 
 
 def add_ip_addr(addr, assigned_vm_id=None):
     session.add(IPaddress(addr, assigned_vm_id))
     session.commit()
+
+
+def delite_ip(addr):
+    session.query(IPaddress).filter_by(addr=addr)
+
+
+def get_free_ip():
+    return session.query(IPaddress).filter_by(assigned_vm_id=None).first()
+
+
+def exempt_ip(addr):
+    session.query(IPaddress).filter_by(addr=addr). \
+        update({'assigned_vm_id': None})
+    session.commit()
+
+
+def assign_ip(vmname, addr=None):
+    vm = get_instance(vmname).first()
+    if vm is None:
+        raise ValueError("No VM with name '%s'" % vmname)
+    if addr:  # check if address is availiable
+        ip_obj = session.query(IPaddress). \
+            filter_by(addr=addr, assigned_vm_id=None).first()
+        if not ip_obj:
+            raise ValueError("IP address '%s' is not availiable" % addr)
+    else:  # get free ip address
+        ip_obj = session.query(IPaddress).filter_by(assigned_vm_id=None). \
+            first()
+        if not ip_obj:
+            raise ValueError("No free IP addresses")
+    session.query(IPaddress).filter_by(id=ip_obj.id). \
+        update({'assigned_vm_id': vm.id})
+    session.commit()
+    return vm.mac, ip_obj.addr
+
+
+#def ip_bind_vm(addr, vm_id):

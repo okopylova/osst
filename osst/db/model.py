@@ -44,6 +44,19 @@ class IPaddress(Base):
         return len(octets) == 4 and \
             all(map(lambda o: o.isdigit() and 0 <= int(o) < 256, octets))
 
+    @staticmethod
+    def range(addr_start, addr_end):
+        if not IPaddress.validate_addr(addr_start) and \
+                IPaddress.validate_addr(addr_start):
+            raise ValueError('Invalid IPv4 address format')
+        oct_start = map(int, addr_start.split('.'))
+        oct_end = map(int, addr_end.split('.'))
+        for oct3 in xrange(oct_start[2], oct_end[2] + 1):
+            for oct4 in xrange(oct_start[3], oct_end[3] + 1):
+                addr = '%d.%d.%d.%d' % (oct_start[0], oct_start[1], oct3, oct4)
+                print addr
+                yield addr
+
     def __init__(self, addr, vm_id=None):
         if IPaddress.validate_addr(addr):
             self.addr = addr
