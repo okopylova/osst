@@ -1,6 +1,5 @@
 *.pyc
-*.swo
-*.swp
-*.swn
+*.sw[opn]
 *~
 *.egg-info
+network/config/
