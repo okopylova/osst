@@ -6,16 +6,28 @@ youruser ALL=NOPASSWD: /sbin/ip
 youruser ALL=NOPASSWD: /sbin/iptables
 youruser ALL=NOPASSWD: /sbin/ifconfig
 where 'youruser' is user who run this script
-
-Also make a symlink from config/dnsmasq.conf to /etc/dnsmasq.d
 """
 
 from subprocess import Popen, PIPE, call
+import os
 from osst.db import infokeeper
 from osst.db.infokeeper import IPaddress
 
-hostsfile = 'config/dnsmasq_dhcp_hostsfile.conf'
-conffile = 'config/dnsmasq.conf'
+home = os.path.expanduser('~')
+hostsfile = os.path.join(home,
+                         'osst/network/config/dnsmasq_dhcp_hostsfile.conf')
+conffile = os.path.join(home, 'osst/network/config/dnsmasq.conf')
+
+
+def _del_file_line(fname, line_pattern):
+    with open(fname, 'r') as fd:
+        lines = fd.readlines()
+        for ln in lines:
+            if ln.rfind(line_pattern) != -1:
+                lines.remove(ln)
+                with open(fname, 'w') as wfd:
+                    wfd.writelines(lines)
+                break
 
 
 def dnsmasq_hangup():
@@ -25,25 +37,27 @@ def dnsmasq_hangup():
 
 
 def bridge_settings():
-    call(['./bridge_settings.sh'])
+    call([os.path.join(home, 'osst/network/bridge_settings.sh')])
 
 
-def assign_ip(vmname, addr=None):
-    mac, ip = infokeeper.assign_ip(vmname, addr)
+def assign_ip(vmid, mac, ip=None):
+    if ip:  # check if address is availiable
+        if not infokeeper.get_ipaddress(ip):
+            raise ValueError("IP address '%s' is not availiable" % ip)
+    else:  # get free ip address
+        ip_obj = infokeeper.get_free_ip()
+        if ip_obj:
+            ip = ip_obj.addr
+        else:
+            raise ValueError("No free IP addresses")
+    infokeeper.assign_ip(vmid, ip)
     with open(hostsfile, 'a') as fd:
         fd.write('%s,%s\n' % (mac, ip))
     dnsmasq_hangup()
 
 
 def exempt_ip(addr):
-    with open(hostsfile, 'r') as fd:
-        lines = fd.readlines()
-    for ln in lines:
-        if ln.rfind(addr) != -1:
-            lines.remove(ln)
-            with open(hostsfile, 'w') as wfd:
-                wfd.writelines(lines)
-            break
+    _del_file_line(hostsfile, addr + '\n')
     infokeeper.exempt_ip(addr)
 
 
@@ -59,16 +73,19 @@ def add_ip_range(addr_start, addr_end):
 def del_ip_range(addr_start, addr_end):
     addresses = IPaddress.range(addr_start, addr_end)
     with open(hostsfile, 'r') as fd:
-        lines = fd.reedlines()
+        lines = fd.readlines()
+        print lines
         for addr in addresses:
-            infokeeper.delete_ip_addr(addr)
+            infokeeper.delete_ip(addr)
             for ln in lines:
-                if ln.rfind(addr) != -1:
+                if ln.rfind(addr + '\n') != -1:
                     lines.remove(ln)
+                    print addr
                     break
+        print lines
         with open(hostsfile, 'w') as wfd:
             wfd.writelines(lines)
-    #TODO: remove range from conffile
+        _del_file_line(conffile, addr_start + ',' + addr_end)
 
 
 bridge_settings()

@@ -54,7 +54,6 @@ class IPaddress(Base):
         for oct3 in xrange(oct_start[2], oct_end[2] + 1):
             for oct4 in xrange(oct_start[3], oct_end[3] + 1):
                 addr = '%d.%d.%d.%d' % (oct_start[0], oct_start[1], oct3, oct4)
-                print addr
                 yield addr
 
     def __init__(self, addr, vm_id=None):

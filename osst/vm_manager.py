@@ -9,6 +9,7 @@ from osst.config.pathconf import driver, base_disk_path
 from osst.config.pathconf import base_vm_img, vm_conf_templ_path
 import osst.db.infokeeper as infokeeper
 from osst.db.model import Instance
+from network.network_manager import assign_ip, exempt_ip
 
 _conn = libvirt.open(driver)
 _vm_conf_template = open(vm_conf_templ_path).read()
@@ -21,11 +22,7 @@ def list_all():
             [_conn.lookupByID(id).name() for id in _conn.listDomainsID()])
 
 
-def status_all():
-    pass
-
-
-def create(vmname):
+def create(vmname, addr=None):
     """Create VM with specified name
 
     Keyword arguments:
@@ -39,7 +36,8 @@ def create(vmname):
     vm = _conn.defineXML(config)
     xml = ET.fromstring(vm.XMLDesc(0))
     mac = xml.find('devices').find('interface').find('mac').attrib['address']
-    infokeeper.add_vm(vmname, mac)
+    vm_info = infokeeper.add_vm(vmname, mac)
+    assign_ip(vm_info.id, mac, addr)
     return 'VM %s created' % vmname
 
 
@@ -58,6 +56,9 @@ def delete(vmname, deldisk=True):
         dom.destroy()
         infokeeper.update_status_vm(vmname, Instance.STATUS_POWER_OFF)
     dom.undefine()
+    full_info = infokeeper.get_full_vm_info(vmname)
+    if full_info.IPaddress:
+        exempt_ip(full_info.IPaddress.addr)
     infokeeper.delete_vm(vmname)
     if deldisk:
         os.remove(os.path.join(base_disk_path, dom.name() + '.img'))
